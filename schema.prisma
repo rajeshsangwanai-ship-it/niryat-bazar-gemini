@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  BUYER
+  EXPORTER
+  ADMIN
+}
+
+enum Incoterm {
+  FOB
+  CIF
+  EXW
+  CFR
+  DDP
+  FCA
+}
+
+enum RFQStatus {
+  DRAFT
+  OPEN
+  UNDER_REVIEW
+  CLOSED
+  CANCELLED
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+model User {
+  id            String          @id @default(uuid())
+  email         String          @unique
+  passwordHash  String
+  role          Role            @default(BUYER)
+  isVerified    Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  
+  companyProfile CompanyProfile?
+  rfqs          RFQ[]           @relation("BuyerRFQs")
+  quotes        Quote[]         @relation("ExporterQuotes")
+  auditLogs     AuditLog[]
+
+  @@index([email, role])
+}
+
+model CompanyProfile {
+  id              String             @id @default(uuid())
+  userId          String             @unique
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName     String
+  country         String
+  gstin           String?            @unique
+  iecCode         String?            @unique // Importer Exporter Code (India)
+  kycStatus       VerificationStatus @default(PENDING)
+  businessAddress Json
+  bankDetails     Json?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+}
+
+model RFQ {
+  id                   String      @id @default(uuid())
+  rfqNumber            String      @unique @default(dbgenerated("gen_random_uuid()"))
+  buyerId              String
+  buyer                User        @relation("BuyerRFQs", fields: [buyerId], references: [id])
+  title                String
+  mongoProductId       String?     // Reference to MongoDB Product Catalog
+  targetHsCode         String
+  quantity             Int
+  unitOfMeasure        String      // e.g., Metric Tons, Pieces, Containers
+  targetUnitPrice      Decimal?    @db.Decimal(12, 2)
+  currency             String      @default("USD")
+  destinationPort      String
+  preferredIncoterm    Incoterm
+  paymentTerms         String      // e.g., "LC at sight", "30% Advance, 70% LC"
+  expiryDate           DateTime
+  status               RFQStatus   @default(OPEN)
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+  
+  quotes               Quote[]
+
+  @@index([buyerId, status])
+  @@index([targetHsCode])
+}
+
+model Quote {
+  id               String    @id @default(uuid())
+  rfqId            String
+  rfq              RFQ       @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  exporterId       String
+  exporter         User      @relation("ExporterQuotes", fields: [exporterId], references: [id])
+  unitPrice        Decimal   @db.Decimal(12, 2)
+  totalAmount      Decimal   @db.Decimal(14, 2)
+  currency         String    @default("USD")
+  incoterm         Incoterm
+  portOfOrigin     String
+  leadTimeDays     Int
+  validUntil       DateTime
+  termsAndConditions String  @db.Text
+  isAccepted       Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@unique([rfqId, exporterId])
+  @@index([exporterId])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  payload   Json
+  ipAddress String
+  createdAt DateTime @default(now())
+}
