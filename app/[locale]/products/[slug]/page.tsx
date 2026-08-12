@@ -1,98 +1,56 @@
-import React from 'react';
-import Image from 'next/image';
-import { notFound } from 'next/navigation';
-import PricingCalculator from '@/components/PricingCalculator';
+import Link from 'next/link';
 
-interface ProductPageProps {
-  params: { slug: string; locale: string };
-}
-
-async function getProductData(slug: string) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products/${slug}`, {
-    next: { revalidate: 60 }, // ISR Strategy
-  });
-  if (!res.ok) return null;
-  return res.json();
-}
-
-export default async function ProductDetailPage({ params }: ProductPageProps) {
-  const product = await getProductData(params.slug);
-
-  if (!product) {
-    notFound();
-  }
-
+export default function HomePage() {
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-        {/* Product Visuals & Certifications */}
-        <div className="space-y-6">
-          <div className="relative h-96 w-full rounded-lg overflow-hidden border border-gray-200">
-            <Image
-              src={product.media?.[0] || '/placeholder-export.png'}
-              alt={product.title}
-              fill
-              className="object-cover"
-              priority
-            />
-          </div>
+    <div className="min-h-screen bg-slate-900 text-white flex flex-col justify-between p-8 font-sans">
+      {/* Header */}
+      <header className="flex justify-between items-center border-b border-slate-800 pb-6">
+        <h1 className="text-3xl font-extrabold tracking-tight text-blue-500">
+          NIRYAT BAZAR <span className="text-sm font-normal text-slate-400">| B2B Export Platform</span>
+        </h1>
+        <div className="space-x-4">
+          <Link href="/api/rfq" className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-sm rounded-lg border border-slate-700 transition">
+            RFQ API Status
+          </Link>
+          <button className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-sm font-semibold rounded-lg shadow-lg transition">
+            Get Started
+          </button>
+        </div>
+      </header>
 
-          <div className="bg-slate-50 p-4 rounded-md border border-slate-200">
-            <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-3">
-              Export Certifications Verified
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {product.certifications.map((cert: any, idx: number) => (
-                <span key={idx} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                  ✓ {cert.name}
-                </span>
-              ))}
-            </div>
+      {/* Hero Section */}
+      <main className="my-auto text-center py-20 max-w-4xl mx-auto">
+        <span className="bg-blue-900/50 text-blue-400 text-xs font-semibold px-3 py-1 rounded-full border border-blue-800">
+          Global B2B Trade & Export Engine Live
+        </span>
+        <h2 className="text-5xl font-black mt-6 mb-4 leading-tight">
+          Empowering Exporters & International Buyers Worldwide
+        </h2>
+        <p className="text-slate-400 text-lg mb-8 max-w-2xl mx-auto">
+          Manage RFQs, HS Code Cataloging, Incoterms pricing, and Instant Supplier Verification directly through Niryat Bazar system.
+        </p>
+
+        {/* Action Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left mt-12">
+          <div className="p-6 bg-slate-800/50 rounded-xl border border-slate-800">
+            <h3 className="font-bold text-blue-400 mb-2">Verified Exporters</h3>
+            <p className="text-sm text-slate-400">KYC verification, GSTIN & IEC code integration for secure cross-border trade.</p>
+          </div>
+          <div className="p-6 bg-slate-800/50 rounded-xl border border-slate-800">
+            <h3 className="font-bold text-blue-400 mb-2">Dynamic RFQs & Quotes</h3>
+            <p className="text-sm text-slate-400">Real-time quote requests, port selection, and automated Incoterms handling.</p>
+          </div>
+          <div className="p-6 bg-slate-800/50 rounded-xl border border-slate-800">
+            <h3 className="font-bold text-blue-400 mb-2">Real-time Architecture</h3>
+            <p className="text-sm text-slate-400">Powered by Next.js, Prisma ORM, PostgreSQL, and Socket server connectivity.</p>
           </div>
         </div>
+      </main>
 
-        {/* Product Meta & Interactive B2B Pricing Engine */}
-        <div className="flex flex-col space-y-6">
-          <div>
-            <span className="text-xs font-mono bg-blue-100 text-blue-800 px-2 py-1 rounded">
-              HS Code: {product.hsCode}
-            </span>
-            <h1 className="text-3xl font-bold text-gray-900 mt-2">{product.title}</h1>
-            <p className="text-sm text-gray-500 mt-1">Origin Port: {product.shippingSpecs.portOfOrigin}, India</p>
-          </div>
-
-          {/* Tiered FOB Pricing Table */}
-          <div className="border rounded-md overflow-hidden border-gray-200">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Quantity Range</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">FOB Price (USD)</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
-                {product.priceTiers.map((tier: any, idx: number) => (
-                  <tr key={idx}>
-                    <td className="px-4 py-2 text-gray-900">
-                      {tier.minQuantity} {tier.maxQuantity ? `- ${tier.maxQuantity}` : '+'} {product.minOrderQuantity.unit}
-                    </td>
-                    <td className="px-4 py-2 font-semibold text-emerald-600">${tier.unitPriceUSD.toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Client-Side Price Calculator & RFQ Trigger */}
-          <PricingCalculator 
-            priceTiers={product.priceTiers} 
-            moq={product.minOrderQuantity.value} 
-            unit={product.minOrderQuantity.unit}
-            productId={product._id}
-            incoterms={product.availableIncoterms}
-          />
-        </div>
-      </div>
+      {/* Footer */}
+      <footer className="text-center text-xs text-slate-600 border-t border-slate-800 pt-6">
+        © 2026 Niryat Bazar. All rights reserved.
+      </footer>
     </div>
   );
 }
